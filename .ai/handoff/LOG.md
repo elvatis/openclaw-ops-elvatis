@@ -8,3 +8,4 @@
 - 2026-02-25: Updated `openclaw-triage-labels` to use `secrets.GITHUB_TOKEN` by default (with `issues: write`), optional override via `TRIAGE_GH_TOKEN`. Documented in README.
 - 2026-02-25: Added QA documentation + commands: `RELEASE.md` (staging gateway + GO checklist), `/release` (prints QA gate), `/handoff` (shows recent handoff log tail). Updated README command list.
 - 2026-02-25: Updated Elvatis blog post “How I Run an Autonomous AI Assistant Without Losing Control” live via Ghost Admin API: added `openclaw-ops` to plugin stack, tightened wording around self-healing scope, updated rollout discipline section to include staging + human GO, and extended the conclusion with QA gate step.
+- 2026-02-25: Overnight QA run (local, no install): ran `npm run build --if-present` + `npm test --if-present` across 14 `openclaw-*` repos. All passed except `openclaw-memory-core` test failure in `tests/store.test.ts` (expects 'Dubai' in top search hit).
