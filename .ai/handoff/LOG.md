@@ -11,3 +11,5 @@
 - 2026-02-25: Overnight QA run (local, no install): ran `npm run build --if-present` + `npm test --if-present` across 14 `openclaw-*` repos. All passed except `openclaw-memory-core` test failure in `tests/store.test.ts` (expects 'Dubai' in top search hit).
 - 2026-02-25: Created/initialized OpenClaw **staging** profile locally on the same machine (state dir `~/.openclaw-staging/`). Updated `RELEASE.md` to document staging gateway + GO flow.
 - 2026-02-25: Policy update: staging smoke tests must be run for **all** `openclaw-*` repos before rollout/publish; documented in `RELEASE.md`.
+- 2026-02-25: Publish gate decision: ClawHub publish uses Option 2 (CI green + staging smoke green). User requested guarantees; we can provide best-effort safety gates and rollback, not absolute guarantees.
+- 2026-02-25: Implemented `/staging-smoke` in openclaw-ops to run sequential staging installs for all `openclaw-*` repos (with `openclaw.plugin.json`), restart staging gateway, run `openclaw --profile staging status`, and write report to `cron/reports/staging-smoke_*.txt`. Updated README.

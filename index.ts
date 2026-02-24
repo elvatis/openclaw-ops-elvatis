@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 
 function expandHome(p: string): string {
   if (!p) return p;
@@ -15,6 +15,20 @@ function safeExec(cmd: string): string {
     return execSync(cmd, { stdio: ["ignore", "pipe", "ignore"], encoding: "utf-8" }).trim();
   } catch {
     return "";
+  }
+}
+
+function runCmd(cmd: string, args: string[], timeoutMs = 120_000): { code: number; out: string } {
+  try {
+    const p = spawnSync(cmd, args, {
+      encoding: "utf-8",
+      timeout: timeoutMs,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const out = `${p.stdout ?? ""}\n${p.stderr ?? ""}`.trim();
+    return { code: p.status ?? (p.error ? 1 : 0), out };
+  } catch (e: any) {
+    return { code: 1, out: String(e?.message ?? e) };
   }
 }
 
@@ -168,6 +182,82 @@ export default function register(api: any) {
         lines.push(`Missing: ${p}`);
       }
       return { text: lines.join("\n") };
+    },
+  });
+
+  api.registerCommand({
+    name: "staging-smoke",
+    description: "Run staging smoke tests for all openclaw-* repos (install + restart + status)",
+    requireAuth: false,
+    acceptsArgs: false,
+    handler: async () => {
+      const reportsDir = path.join(workspace, "cron", "reports");
+      fs.mkdirSync(reportsDir, { recursive: true });
+
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "");
+      const reportPath = path.join(reportsDir, `staging-smoke_${stamp}.txt`);
+
+      const repoDirs = fs
+        .readdirSync(workspace)
+        .filter((d) => d.startsWith("openclaw-") && fs.existsSync(path.join(workspace, d, "openclaw.plugin.json")))
+        .sort();
+
+      const log: string[] = [];
+      log.push(`staging-smoke ${new Date().toISOString()}`);
+      log.push(`repos: ${repoDirs.length}`);
+      log.push("");
+
+      const outLines: string[] = [];
+      outLines.push("Staging smoke");
+      outLines.push("");
+      outLines.push(`Repos: ${repoDirs.length}`);
+
+      for (const repo of repoDirs) {
+        const repoPath = path.join(workspace, repo);
+        const rel = `~/.openclaw/workspace/${repo}`;
+
+        log.push(`== ${repo} ==`);
+
+        const step1 = runCmd("openclaw", ["--profile", "staging", "plugins", "install", "-l", repoPath], 300_000);
+        log.push(`install: exit ${step1.code}`);
+        if (step1.out) log.push(step1.out);
+        if (step1.code !== 0) {
+          log.push("");
+          log.push(`FAIL: ${repo} install`);
+          fs.writeFileSync(reportPath, log.join("\n") + "\n", "utf-8");
+          return { text: `Staging smoke FAILED on ${repo} (install). Report: ${reportPath}` };
+        }
+
+        const step2 = runCmd("openclaw", ["--profile", "staging", "gateway", "restart"], 300_000);
+        log.push(`restart: exit ${step2.code}`);
+        if (step2.out) log.push(step2.out);
+        if (step2.code !== 0) {
+          log.push("");
+          log.push(`FAIL: ${repo} gateway restart`);
+          fs.writeFileSync(reportPath, log.join("\n") + "\n", "utf-8");
+          return { text: `Staging smoke FAILED on ${repo} (gateway restart). Report: ${reportPath}` };
+        }
+
+        const step3 = runCmd("openclaw", ["--profile", "staging", "status"], 180_000);
+        log.push(`status: exit ${step3.code}`);
+        if (step3.out) log.push(step3.out);
+        if (step3.code !== 0) {
+          log.push("");
+          log.push(`FAIL: ${repo} status`);
+          fs.writeFileSync(reportPath, log.join("\n") + "\n", "utf-8");
+          return { text: `Staging smoke FAILED on ${repo} (status). Report: ${reportPath}` };
+        }
+
+        outLines.push(`- OK: ${repo} (${rel})`);
+        log.push("");
+      }
+
+      log.push("DONE");
+      fs.writeFileSync(reportPath, log.join("\n") + "\n", "utf-8");
+
+      outLines.push("");
+      outLines.push(`Report: ${reportPath}`);
+      return { text: outLines.join("\n") };
     },
   });
 
