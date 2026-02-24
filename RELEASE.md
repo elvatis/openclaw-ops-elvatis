@@ -8,9 +8,10 @@
 
 ## Staging Gateway (where we test first)
 
-- **Gateway profile:** `staging` (recommended)
-- **Machine / host:** _TBD_
-- **How to start:**
+- **Gateway profile:** `staging`
+- **Machine / host:** this same machine (single-host setup)
+- **Profile state dir:** `~/.openclaw-staging/`
+- **How to start/use:**
   - `openclaw --profile staging gateway start`
   - Install plugin locally into that profile and verify:
     - `openclaw --profile staging plugins install -l ~/.openclaw/workspace/<plugin-repo>`
