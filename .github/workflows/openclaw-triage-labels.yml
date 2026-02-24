@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   triage:
@@ -28,6 +29,8 @@ jobs:
 
       - name: Triage labels across openclaw-* repos (labeling-only)
         env:
+          # Prefer GitHub Actions built-in token. Optional override via TRIAGE_GH_TOKEN.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TRIAGE_GH_TOKEN: ${{ secrets.TRIAGE_GH_TOKEN }}
           GH_OWNER: homeofe
           REPO_PREFIX: openclaw-
