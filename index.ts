@@ -42,75 +42,71 @@ export default function register(api: any) {
 
   api.registerCommand({
     name: "cron",
-    description: "Show cron dashboard (crontab + systemd timers + scripts + latest reports)",
+    description: "Show cron dashboard (WhatsApp-friendly)",
     requireAuth: false,
     acceptsArgs: false,
     handler: async () => {
       const lines: string[] = [];
       lines.push("Cron dashboard");
-      lines.push("");
-      lines.push("CRONTAB");
 
-      // 1) user crontab
+      // CRONTAB
       const crontab = safeExec("crontab -l");
-      if (crontab) {
-        const jobs = crontab
-          .split("\n")
-          .map((l) => l.trim())
-          .filter((l) => l && !l.startsWith("#"));
-        lines.push(`jobs (${jobs.length}):`);
-        lines.push("```text");
-        for (const j of jobs.slice(0, 50)) lines.push(j);
-        if (jobs.length > 50) lines.push("... (truncated)");
-        lines.push("```");
-      } else {
-        lines.push("No user crontab entries found (or permission denied).");
-      }
+      const jobs = crontab
+        ? crontab
+            .split("\n")
+            .map((l) => l.trim())
+            .filter((l) => l && !l.startsWith("#"))
+        : [];
 
       lines.push("");
-
-      // 2) systemd user timers (best-effort)
-      lines.push("");
-      lines.push("SYSTEMD USER TIMERS");
-      const timers = safeExec("systemctl --user list-timers --all --no-pager");
-      if (timers) {
-        const tlines = timers.split("\n").slice(0, 25);
-        lines.push("```text");
-        for (const l of tlines) lines.push(l);
-        lines.push("```");
+      lines.push(`CRONTAB JOBS (${jobs.length})`);
+      if (!jobs.length) {
+        lines.push("- (none)");
       } else {
-        lines.push("(none found or systemctl not available)");
+        for (const j of jobs.slice(0, 20)) lines.push(`- ${j}`);
+        if (jobs.length > 20) lines.push("- ... (truncated)");
       }
 
-      // 3) scripts folder
+      // SCRIPTS
       lines.push("");
       lines.push("SCRIPTS");
       try {
-        const scripts = fs.readdirSync(cronScripts).filter((f) => f.endsWith(".sh"));
-        lines.push(`files (${scripts.length}):`);
-        lines.push("```text");
-        for (const s of scripts.sort()) {
-          const st = fs.statSync(path.join(cronScripts, s));
-          lines.push(`${s.padEnd(28)}  mtime=${new Date(st.mtimeMs).toISOString()}`);
+        const scripts = fs.readdirSync(cronScripts).filter((f) => f.endsWith(".sh")).sort();
+        if (!scripts.length) {
+          lines.push("- (none)");
+        } else {
+          for (const s of scripts) {
+            const st = fs.statSync(path.join(cronScripts, s));
+            const m = new Date(st.mtimeMs).toISOString().slice(0, 16).replace("T", " ");
+            lines.push(`- ${s} (modified ${m} UTC)`);
+          }
         }
-        lines.push("```");
       } catch {
-        lines.push("No cron/scripts directory found.");
+        lines.push("- (cron/scripts missing)");
       }
 
-      lines.push("");
-
-      // 4) latest reports
+      // REPORTS
       lines.push("");
       lines.push("REPORTS");
       const latestPrivacy = latestFile(cronReports, "github-privacy-scan_");
       if (latestPrivacy) {
-        lines.push("latest privacy scan:");
-        lines.push("```text");
-        lines.push(path.join(cronReports, latestPrivacy));
-        lines.push("```");
+        lines.push(`- latest privacy scan: ${latestPrivacy.replace(".txt", "")}`);
+        lines.push(`  ${path.join(cronReports, latestPrivacy)}`);
       } else {
-        lines.push("(no privacy scan report yet)");
+        lines.push("- (no privacy scan report yet)");
+      }
+
+      // SYSTEMD USER TIMERS (short)
+      const timers = safeExec("systemctl --user list-timers --all --no-pager");
+      if (timers) {
+        const tlines = timers.split("\n").filter(Boolean);
+        const head = tlines.slice(0, 1);
+        const body = tlines.slice(1).filter((l) => !l.startsWith("-") && l.trim()).slice(0, 2);
+        lines.push("");
+        lines.push("SYSTEMD (USER) TIMERS (top 2)");
+        lines.push("```text");
+        for (const l of [...head, ...body]) lines.push(l);
+        lines.push("```");
       }
 
       return { text: lines.join("\n") };
