@@ -14,3 +14,9 @@
 - 2026-02-25: Publish gate decision: ClawHub publish uses Option 2 (CI green + staging smoke green). User requested guarantees; we can provide best-effort safety gates and rollback, not absolute guarantees.
 - 2026-02-25: Implemented `/staging-smoke` in openclaw-ops to run sequential staging installs for all `openclaw-*` repos (with `openclaw.plugin.json`), restart staging gateway, run `openclaw --profile staging status`, and write report to `cron/reports/staging-smoke_*.txt`. Updated README.
 - 2026-02-25: Ran staging smoke via CLI loop (single-host constraint, avoid repeated restarts). Failed immediately on `openclaw-docker`: `openclaw plugins install` reports `package.json missing openclaw.extensions`. Report: `cron/reports/staging-smoke_202602242352.txt`.
+- 2026-02-25: Patched all affected `openclaw-*` repos to add `package.json` → `openclaw.extensions` so `openclaw plugins install` works. Updated + pushed:
+  - openclaw-docker (7571eb9)
+  - openclaw-gpu-bridge (a90474e)
+  - openclaw-homeassistant (9fad756)
+  - openclaw-ispconfig (11bcfe0)
+  - openclaw-memory-core (cae15ef)
