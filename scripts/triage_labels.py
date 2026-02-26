@@ -121,11 +121,14 @@ def gh_get_paginated(s: requests.Session, url: str, params: Dict[str, Any] | Non
         url = next_url
 
 
-def ensure_label(s: requests.Session, owner: str, repo: str, name: str, color: str, description: str) -> None:
+def ensure_label(s: requests.Session, owner: str, repo: str, name: str, color: str, description: str) -> bool:
+    """Ensure label exists. Returns True if successful, False if no permissions."""
     # If exists -> 200; else 404
     r = s.get(f"{API}/repos/{owner}/{repo}/labels/{name}")
     if r.status_code == 200:
-        return
+        return True
+    if r.status_code == 403:
+        return False  # No permission, skip this repo
     if r.status_code != 404:
         raise RuntimeError(f"GET label {owner}/{repo}:{name} failed: {r.status_code} {r.text}")
 
@@ -134,11 +137,15 @@ def ensure_label(s: requests.Session, owner: str, repo: str, name: str, color: s
         json={"name": name, "color": color, "description": description},
     )
     if r.status_code not in (200, 201):
+        # If 403, no permission to create labels
+        if r.status_code == 403:
+            return False
         # If it was created concurrently, GitHub may return 422. Treat as OK if label now exists.
         r2 = s.get(f"{API}/repos/{owner}/{repo}/labels/{name}")
         if r2.status_code == 200:
-            return
+            return True
         raise RuntimeError(f"POST label {owner}/{repo}:{name} failed: {r.status_code} {r.text}")
+    return True
 
 
 def list_repos(s: requests.Session, owner: str) -> List[Dict[str, Any]]:
@@ -171,13 +178,17 @@ def classify(text: str) -> str:
     return "needs-triage"
 
 
-def add_label(s: requests.Session, owner: str, repo: str, issue_number: int, label: str) -> None:
+def add_label(s: requests.Session, owner: str, repo: str, issue_number: int, label: str) -> bool:
+    """Add label to issue. Returns True if successful, False if no permissions."""
     r = s.post(
         f"{API}/repos/{owner}/{repo}/issues/{issue_number}/labels",
         json={"labels": [label]},
     )
     if r.status_code not in (200, 201):
+        if r.status_code == 403:
+            return False  # No permission
         raise RuntimeError(f"Add label failed for {owner}/{repo}#{issue_number}: {r.status_code} {r.text}")
+    return True
 
 
 def main() -> int:
@@ -210,14 +221,23 @@ def main() -> int:
 
     total = Counts()
     per_repo: Dict[str, Counts] = {}
+    skipped_repos: List[str] = []
 
     for r in repos:
         repo = r["name"]
         per_repo[repo] = Counts()
 
-        # Ensure labels exist
+        # Ensure labels exist (check permissions first)
+        has_access = True
         for lname, meta in LABELS.items():
-            ensure_label(s, owner, repo, lname, meta["color"], meta["description"])
+            if not ensure_label(s, owner, repo, lname, meta["color"], meta["description"]):
+                has_access = False
+                break
+        
+        if not has_access:
+            print(f"⚠️  Skipping {owner}/{repo}: insufficient permissions")
+            skipped_repos.append(repo)
+            continue
 
         # Fetch open issues (GitHub's /issues includes PRs; filter them)
         issues = s.get(
@@ -244,22 +264,24 @@ def main() -> int:
                 continue
 
             label = classify(f"{title}\n{body}")
-            add_label(s, owner, repo, number, label)
-
-            c = per_repo[repo]
-            if label == "security":
-                c.security += 1
-                total.security += 1
-            elif label == "bug":
-                c.bug += 1
-                total.bug += 1
-            else:
-                c.needs_triage += 1
-                total.needs_triage += 1
+            if add_label(s, owner, repo, number, label):
+                c = per_repo[repo]
+                if label == "security":
+                    c.security += 1
+                    total.security += 1
+                elif label == "bug":
+                    c.bug += 1
+                    total.bug += 1
+                else:
+                    c.needs_triage += 1
+                    total.needs_triage += 1
 
     # Print a GitHub Actions-friendly summary
     print("\n== openclaw triage summary ==")
     print(f"repos scanned: {len(repos)}")
+    if skipped_repos:
+        print(f"repos skipped (no permissions): {len(skipped_repos)} — {', '.join(skipped_repos)}")
+        print("💡 To triage all repos, set TRIAGE_GH_TOKEN secret with a PAT that has repo-level access.")
     print(f"labeled total: security={total.security}, bug={total.bug}, needs-triage={total.needs_triage}")
     print("\nPer repo:")
     for repo in sorted(per_repo.keys()):

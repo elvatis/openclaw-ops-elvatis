@@ -12,8 +12,8 @@ Commands:
 
 GitHub Actions:
 - `openclaw-triage-labels` (labeling-only): scans `homeofe/openclaw-*` repos and applies labels `security`, `bug`, or `needs-triage`.
-  - Uses `secrets.GITHUB_TOKEN` by default.
-  - Optional override: define repo secret `TRIAGE_GH_TOKEN`.
+  - Uses `secrets.GITHUB_TOKEN` by default (works only for openclaw-ops repo).
+  - **Cross-repo access**: set repo secret `TRIAGE_GH_TOKEN` to a Personal Access Token with `repo` scope to triage issues in all openclaw-* repositories.
 
 Install locally:
 ```bash
