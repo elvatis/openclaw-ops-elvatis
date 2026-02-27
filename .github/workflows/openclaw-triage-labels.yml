@@ -1,0 +1,64 @@
+# openclaw-triage-labels - Automated issue labeling across openclaw-* repos
+#
+# This workflow scans all homeofe/openclaw-* repositories for open issues
+# and applies labels (security, bug, needs-triage) based on keyword analysis.
+#
+# IMPORTANT: Cross-repo access requires a fine-grained PAT
+# --------------------------------------------------------
+# The default GITHUB_TOKEN is scoped to this repo (openclaw-ops) only.
+# To label issues in sibling repos (openclaw-memory-core, openclaw-gpu-bridge,
+# etc.), you MUST configure a Personal Access Token:
+#
+# 1. Go to https://github.com/settings/tokens?type=beta
+# 2. Create a fine-grained PAT with:
+#    - Repository access: All repositories (or select all homeofe/openclaw-* repos)
+#    - Permissions: Issues (Read and write), Metadata (Read)
+# 3. Go to this repo's Settings > Secrets and variables > Actions
+# 4. Add a repository secret named TRIAGE_GH_TOKEN with the PAT value
+#
+# Without TRIAGE_GH_TOKEN, the workflow will only triage openclaw-ops issues
+# and skip all other repos with a warning (no 403 errors).
+
+name: openclaw-triage-labels
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    # Allow manual triggering for testing
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run triage labeling
+        env:
+          # Use the fine-grained PAT if available; fall back to the default
+          # GITHUB_TOKEN (which only works for this repo).
+          TRIAGE_GH_TOKEN: ${{ secrets.TRIAGE_GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_OWNER: homeofe
+          REPO_PREFIX: "openclaw-"
+          PER_REPO_LIMIT: "30"
+          SKIP_ARCHIVED: "1"
+          SKIP_FORKS: "1"
+        run: python scripts/triage_labels.py

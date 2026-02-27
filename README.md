@@ -60,12 +60,32 @@ openclaw health        # System health
 openclaw services      # All services
 ```
 
-GitHub Actions:
-- `openclaw-triage-labels` (labeling-only): scans `homeofe/openclaw-*` repos and applies labels `security`, `bug`, or `needs-triage`.
-  - Uses `secrets.GITHUB_TOKEN` by default (works only for openclaw-ops repo).
-  - **Cross-repo access**: set repo secret `TRIAGE_GH_TOKEN` to a Personal Access Token with `repo` scope to triage issues in all openclaw-* repositories.
+## GitHub Actions
 
-Install locally:
+### openclaw-triage-labels
+
+Automated issue labeling across all `homeofe/openclaw-*` repositories. Runs daily at 06:00 UTC and can be triggered manually via `workflow_dispatch`.
+
+Applies labels based on keyword analysis:
+- `security` - security-related issues (CVE, vulnerability, XSS, etc.)
+- `bug` - bug reports (crash, error, regression, etc.)
+- `needs-triage` - everything else that has not been triaged yet
+
+#### Cross-repo PAT setup (required for multi-repo triage)
+
+The default `GITHUB_TOKEN` is scoped to `openclaw-ops` only. To label issues in sibling repos (`openclaw-memory-core`, `openclaw-gpu-bridge`, etc.), you must configure a fine-grained Personal Access Token:
+
+1. Go to [GitHub token settings](https://github.com/settings/tokens?type=beta)
+2. Create a fine-grained PAT with:
+   - **Repository access**: All repositories (or select all `homeofe/openclaw-*` repos)
+   - **Permissions**: Issues (Read and write), Metadata (Read)
+3. Go to this repo's **Settings > Secrets and variables > Actions**
+4. Add a repository secret named `TRIAGE_GH_TOKEN` with the PAT value
+
+Without `TRIAGE_GH_TOKEN`, the workflow gracefully skips repos where it lacks permissions (no 403 errors - just a warning in the logs).
+
+## Install
+
 ```bash
 openclaw plugins install -l ~/.openclaw/workspace/openclaw-ops
 openclaw gateway restart
