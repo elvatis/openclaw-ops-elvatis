@@ -115,7 +115,6 @@ Remaining: #5 (CI fix, requires PAT setup)
 
 | Gap | Severity | Description | Tracked |
 |-----|----------|-------------|---------|
-| Windows disk detection | MEDIUM | Uses deprecated wmic, hardcodes C: drive | [#4](https://github.com/homeofe/openclaw-ops/issues/4) |
 | Triage CI | LOW | Suspended - 403 cross-repo failures, needs PAT | [#5](https://github.com/homeofe/openclaw-ops/issues/5) |
 
 <!-- /SECTION: what_is_missing -->
