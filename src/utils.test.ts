@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import os from "node:os";
+import fs from "node:fs";
 import path from "node:path";
-import { expandHome, safeExec, runCmd, latestFile, formatBytes } from "./utils.js";
+import { expandHome, safeExec, runCmd, latestFile, formatBytes, loadActiveCooldowns, formatCooldownLine } from "./utils.js";
+import type { CooldownEntry } from "./utils.js";
 
 // ---------------------------------------------------------------------------
 // expandHome
@@ -112,5 +114,130 @@ describe("latestFile", () => {
   it("returns null when no files match the prefix", () => {
     // os.tmpdir() exists but is unlikely to have files starting with this prefix
     expect(latestFile(os.tmpdir(), "zzz-nonexistent-prefix-xyz-99999")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// loadActiveCooldowns
+// ---------------------------------------------------------------------------
+describe("loadActiveCooldowns", () => {
+  const tmpDir = path.join(os.tmpdir(), "openclaw-ops-test-cooldowns-" + process.pid);
+  const memoryDir = path.join(tmpDir, "memory");
+  const statePath = path.join(memoryDir, "model-ratelimits.json");
+
+  afterEach(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      // ignore cleanup failures
+    }
+  });
+
+  it("returns empty array when workspace does not exist", () => {
+    expect(loadActiveCooldowns("/tmp/nonexistent-workspace-xyz-99999")).toEqual([]);
+  });
+
+  it("returns empty array when state file does not exist", () => {
+    fs.mkdirSync(memoryDir, { recursive: true });
+    expect(loadActiveCooldowns(tmpDir)).toEqual([]);
+  });
+
+  it("returns empty array when state file has invalid JSON", () => {
+    fs.mkdirSync(memoryDir, { recursive: true });
+    fs.writeFileSync(statePath, "not-json{{", "utf-8");
+    expect(loadActiveCooldowns(tmpDir)).toEqual([]);
+  });
+
+  it("returns empty array when no models are in cooldown", () => {
+    fs.mkdirSync(memoryDir, { recursive: true });
+    fs.writeFileSync(statePath, JSON.stringify({ limited: {} }), "utf-8");
+    expect(loadActiveCooldowns(tmpDir)).toEqual([]);
+  });
+
+  it("filters out expired cooldowns", () => {
+    const pastTime = Math.floor(Date.now() / 1000) - 3600;
+    fs.mkdirSync(memoryDir, { recursive: true });
+    fs.writeFileSync(
+      statePath,
+      JSON.stringify({
+        limited: {
+          "openai/gpt-4": { lastHitAt: pastTime - 100, nextAvailableAt: pastTime },
+        },
+      }),
+      "utf-8",
+    );
+    expect(loadActiveCooldowns(tmpDir)).toEqual([]);
+  });
+
+  it("returns active cooldowns sorted by soonest-to-expire", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const soon = now + 600;
+    const later = now + 3600;
+    fs.mkdirSync(memoryDir, { recursive: true });
+    fs.writeFileSync(
+      statePath,
+      JSON.stringify({
+        limited: {
+          "anthropic/claude-opus": {
+            lastHitAt: now - 100,
+            nextAvailableAt: later,
+            reason: "daily limit",
+          },
+          "openai/gpt-5": {
+            lastHitAt: now - 50,
+            nextAvailableAt: soon,
+            reason: "rate limit",
+          },
+        },
+      }),
+      "utf-8",
+    );
+    const result = loadActiveCooldowns(tmpDir);
+    expect(result).toHaveLength(2);
+    expect(result[0].model).toBe("openai/gpt-5");
+    expect(result[1].model).toBe("anthropic/claude-opus");
+    expect(result[0].reason).toBe("rate limit");
+    expect(result[1].reason).toBe("daily limit");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatCooldownLine
+// ---------------------------------------------------------------------------
+describe("formatCooldownLine", () => {
+  it("formats a cooldown entry with minutes remaining", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const entry: CooldownEntry = {
+      model: "openai/gpt-5",
+      lastHitAt: now - 100,
+      nextAvailableAt: now + 1800,
+    };
+    const line = formatCooldownLine(entry);
+    expect(line).toContain("openai/gpt-5");
+    expect(line).toContain("UTC");
+    expect(line).toMatch(/~\d+m/);
+  });
+
+  it("formats hours for long cooldowns", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const entry: CooldownEntry = {
+      model: "anthropic/claude-opus",
+      lastHitAt: now - 100,
+      nextAvailableAt: now + 7200, // 2 hours
+    };
+    const line = formatCooldownLine(entry);
+    expect(line).toContain("anthropic/claude-opus");
+    expect(line).toMatch(/~2h/);
+  });
+
+  it("shows at least 1 minute even for very short remaining times", () => {
+    const now = Math.floor(Date.now() / 1000);
+    const entry: CooldownEntry = {
+      model: "test/model",
+      lastHitAt: now - 10,
+      nextAvailableAt: now + 5, // 5 seconds
+    };
+    const line = formatCooldownLine(entry);
+    expect(line).toMatch(/~1m/);
   });
 });

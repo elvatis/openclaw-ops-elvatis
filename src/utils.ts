@@ -98,6 +98,77 @@ export function formatBytes(bytes: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Cooldown / model-failover state helpers
+// ---------------------------------------------------------------------------
+
+/** A single model cooldown entry from the model-failover state file. */
+export interface CooldownEntry {
+  model: string;
+  lastHitAt: number;
+  nextAvailableAt: number;
+  reason?: string;
+}
+
+/**
+ * Load active cooldowns from the model-failover state file.
+ *
+ * Reads `<workspace>/memory/model-ratelimits.json`, filters for entries whose
+ * `nextAvailableAt` is still in the future, and returns them sorted by
+ * soonest-to-expire first.
+ *
+ * Returns an empty array when the file is missing, unreadable, or contains
+ * no active cooldowns.
+ */
+export function loadActiveCooldowns(workspace: string): CooldownEntry[] {
+  const statePath = path.join(workspace, "memory", "model-ratelimits.json");
+  const now = Math.floor(Date.now() / 1000);
+
+  try {
+    if (!fs.existsSync(statePath)) return [];
+    const raw = fs.readFileSync(statePath, "utf-8");
+    const st = JSON.parse(raw) as any;
+    const lim = (st?.limited ?? {}) as Record<
+      string,
+      { lastHitAt: number; nextAvailableAt: number; reason?: string }
+    >;
+
+    return Object.entries(lim)
+      .map(([model, v]) => ({ model, ...v }))
+      .filter((v) => typeof v.nextAvailableAt === "number" && v.nextAvailableAt > now)
+      .sort((a, b) => a.nextAvailableAt - b.nextAvailableAt);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Format a cooldown entry into a human-readable status line.
+ *
+ * Example output: `openai-codex/gpt-5.3 - 2026-02-27 15:30 UTC (~45m)`
+ */
+export function formatCooldownLine(entry: CooldownEntry): string {
+  const now = Math.floor(Date.now() / 1000);
+  const etaSec = entry.nextAvailableAt - now;
+  const etaMin = Math.max(1, Math.round(etaSec / 60));
+
+  let eta: string;
+  if (etaMin >= 60) {
+    const h = Math.floor(etaMin / 60);
+    const m = etaMin % 60;
+    eta = m > 0 ? `~${h}h${m}m` : `~${h}h`;
+  } else {
+    eta = `~${etaMin}m`;
+  }
+
+  const until = new Date(entry.nextAvailableAt * 1000)
+    .toISOString()
+    .slice(0, 16)
+    .replace("T", " ");
+
+  return `${entry.model} - ${until} UTC (${eta})`;
+}
+
+// ---------------------------------------------------------------------------
 // System inspection helpers
 // ---------------------------------------------------------------------------
 

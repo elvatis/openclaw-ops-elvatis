@@ -14,6 +14,8 @@ import {
   runCmd,
   getSystemResources,
   checkGatewayStatus,
+  loadActiveCooldowns,
+  formatCooldownLine,
 } from "../src/utils.js";
 
 export function registerPhase1Commands(api: any, workspace: string) {
@@ -62,6 +64,23 @@ export function registerPhase1Commands(api: any, workspace: string) {
         lines.push("- Unable to count plugins");
       }
       
+      // Cooldown Detection (model-failover state)
+      lines.push("");
+      lines.push("COOLDOWNS");
+      const cooldowns = loadActiveCooldowns(workspace);
+      if (cooldowns.length === 0) {
+        lines.push("✓ None active");
+      } else {
+        lines.push(`⚠ ${cooldowns.length} model${cooldowns.length > 1 ? "s" : ""} in cooldown`);
+        for (const cd of cooldowns.slice(0, 5)) {
+          lines.push(`  ${formatCooldownLine(cd)}`);
+          if (cd.reason) lines.push(`  Reason: ${cd.reason}`);
+        }
+        if (cooldowns.length > 5) {
+          lines.push(`  ... and ${cooldowns.length - 5} more (use /limits for full list)`);
+        }
+      }
+
       // Last Error Check
       lines.push("");
       lines.push("ERRORS");

@@ -4,7 +4,7 @@ import { execSync } from "node:child_process";
 import { registerPhase1Commands } from "./extensions/phase1-commands.js";
 import { registerObserverCommands } from "./extensions/observer-commands.js";
 import { registerSkillsCommands } from "./extensions/skills-commands.js";
-import { expandHome, safeExec, runCmd, latestFile } from "./src/utils.js";
+import { expandHome, safeExec, runCmd, latestFile, loadActiveCooldowns, formatCooldownLine } from "./src/utils.js";
 
 export default function register(api: any) {
   const cfg = (api.pluginConfig ?? {}) as { enabled?: boolean; workspacePath?: string };
@@ -323,40 +323,17 @@ export default function register(api: any) {
         msg.push("- (no auth expiry data in CLI output)");
       }
 
-      // Section: Rate-limit cooldowns
+      // Section: Rate-limit cooldowns (from model-failover state)
       msg.push("");
       msg.push("COOLDOWNS");
-      try {
-        const statePath = path.join(workspace, "memory", "model-ratelimits.json");
-        const now = Math.floor(Date.now() / 1000);
-
-        if (!fs.existsSync(statePath)) {
-          msg.push("- None recorded (appears after first 429 via model-failover)");
-        } else {
-          const raw = fs.readFileSync(statePath, "utf-8");
-          const st = JSON.parse(raw) as any;
-          const lim = (st?.limited ?? {}) as Record<string, { lastHitAt: number; nextAvailableAt: number; reason?: string }>;
-
-          const active = Object.entries(lim)
-            .map(([model, v]) => ({ model, ...v }))
-            .filter((v) => typeof v.nextAvailableAt === "number" && v.nextAvailableAt > now)
-            .sort((a, b) => a.nextAvailableAt - b.nextAvailableAt)
-            .slice(0, 20);
-
-          if (!active.length) {
-            msg.push("✓ None active");
-          } else {
-            for (const a of active) {
-              const etaSec = a.nextAvailableAt - now;
-              const etaMin = Math.max(1, Math.round(etaSec / 60));
-              const until = new Date(a.nextAvailableAt * 1000).toISOString().slice(0, 16).replace("T", " ");
-              msg.push(`⚠ ${a.model} - ${until} UTC (~${etaMin}m)`);
-              if (a.reason) msg.push(`  Reason: ${a.reason}`);
-            }
-          }
+      const active = loadActiveCooldowns(workspace).slice(0, 20);
+      if (!active.length) {
+        msg.push("✓ None active");
+      } else {
+        for (const a of active) {
+          msg.push(`⚠ ${formatCooldownLine(a)}`);
+          if (a.reason) msg.push(`  Reason: ${a.reason}`);
         }
-      } catch {
-        msg.push("- Failed to read cooldown state");
       }
 
       msg.push("");

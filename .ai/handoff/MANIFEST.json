@@ -3,11 +3,11 @@
   "project": "openclaw-ops",
   "last_session": {
     "agent": "claude-opus-4.6",
-    "session_id": "t001-limits-output-2026-02-27",
-    "timestamp": "2026-02-27T02:48:00Z",
+    "session_id": "t002-cooldown-detection-2026-02-27",
+    "timestamp": "2026-02-27T03:35:00Z",
     "commit": "pending",
     "phase": "implementation",
-    "duration_minutes": 15
+    "duration_minutes": 20
   },
   "files": {
     "STATUS.md": {
@@ -53,7 +53,7 @@
       "summary": "2-agent pipeline. Safety rules: no secrets in output, staging gate required."
     }
   },
-  "quick_context": "openclaw-ops v0.2.0 active plugin. Phase 1 commands (/health, /services, /logs, /plugins) + legacy commands all working. New: /skills (all installed plugins + commands) and /shortcuts (flat cheat-sheet). T-004 (utils) done, T-005 (tests) ready, T-007 (win disk) ready, T-006 (config) ready, T-003 (triage) blocked.",
+  "quick_context": "openclaw-ops v0.2.0 active plugin. Phase 1 commands (/health, /services, /logs, /plugins) + legacy commands all working. /health now shows active model cooldowns from model-failover state. /limits refactored to use shared cooldown utility. T-002 (cooldown detection) done, T-005 (tests) ready, T-007 (win disk) ready, T-006 (config) ready, T-003 (triage) blocked.",
   "token_budget": {
     "manifest_only": 100,
     "manifest_plus_core": 450,
@@ -72,11 +72,12 @@
     },
     "T-002": {
       "title": "Add active cooldown detection from model-failover state",
-      "status": "ready",
+      "status": "done",
       "priority": "medium",
       "depends_on": [],
       "created": "2026-02-26T23:16:45Z",
-      "note": "Covered by T-004 refactor"
+      "completed": "2026-02-27T03:35:00Z",
+      "note": "Extracted loadActiveCooldowns + formatCooldownLine into src/utils.ts, added COOLDOWNS section to /health, refactored /limits to use shared utility, 9 new tests"
     },
     "T-003": {
       "title": "Fix and re-enable triage CI",

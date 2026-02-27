@@ -1,6 +1,6 @@
 # openclaw-ops: Current State of the Nation
 
-> Last updated: 2026-02-27 by claude-opus-4.6 (v0.2 roadmap definition)
+> Last updated: 2026-02-27 by claude-opus-4.6 (T-002 cooldown detection)
 > Commit: pending
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
@@ -9,7 +9,7 @@
 ---
 
 <!-- SECTION: summary -->
-Active plugin at v0.2.0. Phase 1 commands (/health, /services, /logs, /plugins) implemented alongside legacy commands (/cron, /privacy-scan, /limits, /release, /handoff, /staging-smoke). Triage CI suspended. v0.2 roadmap defined with 5 GitHub issues covering code quality, testing, new features, and bug fixes.
+Active plugin at v0.2.0. Phase 1 commands (/health, /services, /logs, /plugins) implemented alongside legacy commands (/cron, /privacy-scan, /limits, /release, /handoff, /staging-smoke). /health now includes active cooldown detection from model-failover state. /limits refactored to use shared cooldown utility. Triage CI suspended. v0.2 roadmap in progress.
 <!-- /SECTION: summary -->
 
 <!-- SECTION: build_health -->
@@ -17,8 +17,8 @@ Active plugin at v0.2.0. Phase 1 commands (/health, /services, /logs, /plugins) 
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| `npm run build` | (Unknown) | Not recently verified |
-| `npm test` | N/A | No tests configured yet (see [#2](https://github.com/homeofe/openclaw-ops/issues/2)) |
+| `tsc --noEmit` | Pass | Verified 2026-02-27 |
+| `npm test` | Pass (27 tests) | Vitest configured, 27 tests passing |
 | `lint` | (Unknown) | Not configured |
 
 <!-- /SECTION: build_health -->
@@ -30,13 +30,13 @@ Active plugin at v0.2.0. Phase 1 commands (/health, /services, /logs, /plugins) 
 
 | Command | Status | Notes |
 |---------|--------|-------|
-| `/health` | Active | Gateway status, system resources, plugin count, recent errors |
+| `/health` | Active | Gateway status, system resources, plugin count, model cooldowns, recent errors |
 | `/services` | Active | Profile listing, gateway state per profile, port bindings |
 | `/logs` | Active | Unified log viewer with service and line-count args |
 | `/plugins` | Active | Enhanced plugin dashboard with versions and workspace info |
 | `/cron` | Active | Shows crontab + systemd timers + scripts + latest reports |
 | `/privacy-scan` | Active | Report-only, filenames only for secret matches |
-| `/limits` | Active | Shows cooldown windows + auth expiry ETAs |
+| `/limits` | Active | Shows cooldown windows + auth expiry ETAs (uses shared cooldown utility) |
 | `/release` | Active | Prints QA gate checklist |
 | `/handoff` | Active | Shows recent handoff log tail |
 | `/staging-smoke` | Active | Sequential staging installs for all openclaw-* repos |
