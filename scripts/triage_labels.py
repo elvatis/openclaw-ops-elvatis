@@ -165,23 +165,31 @@ def ensure_label(s: requests.Session, owner: str, repo: str, name: str, color: s
 
 
 def list_repos(s: requests.Session, owner: str) -> List[Dict[str, Any]]:
-    # Try org first, fallback to user
+    """List all repos for an owner. Tries org endpoint first, falls back to user.
+
+    Handles 403 (permission denied) and 404 (not found) gracefully by trying
+    the next endpoint. This is important because GITHUB_TOKEN from Actions
+    may not have org-level read access.
+    """
     org_url = f"{API}/orgs/{owner}/repos"
     user_url = f"{API}/users/{owner}/repos"
 
     def try_url(url: str) -> Optional[List[Dict[str, Any]]]:
         try:
             return list(gh_get_paginated(s, url, params={"per_page": 100, "type": "all"}))
+        except (GitHubNotFoundError, GitHubPermissionError) as e:
+            print(f"  (info) {url} - {e}")
+            return None
         except RuntimeError as e:
-            if "404" in str(e):
-                return None
-            raise
+            # Unexpected error - log and move on to fallback
+            print(f"  (warning) {url} - {e}")
+            return None
 
     repos = try_url(org_url)
     if repos is None:
         repos = try_url(user_url)
     if repos is None:
-        raise RuntimeError(f"Owner not found as org or user: {owner}")
+        raise RuntimeError(f"Could not list repos for {owner} - both org and user endpoints failed")
     return repos
 
 
