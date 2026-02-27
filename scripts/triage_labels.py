@@ -96,13 +96,29 @@ def session(token: str) -> requests.Session:
     return s
 
 
+class GitHubPermissionError(RuntimeError):
+    """Raised when the token lacks permission for a GitHub API call (403)."""
+
+
+class GitHubNotFoundError(RuntimeError):
+    """Raised when a GitHub API endpoint returns 404."""
+
+
 def gh_get_paginated(s: requests.Session, url: str, params: Dict[str, Any] | None = None) -> Iterable[Dict[str, Any]]:
-    """Yield items from a GitHub API endpoint that returns an array."""
+    """Yield items from a GitHub API endpoint that returns an array.
+
+    Raises GitHubPermissionError on 403 and GitHubNotFoundError on 404
+    so callers can handle them distinctly.
+    """
     while url:
         r = s.get(url, params=params)
         params = None  # only for first page
+        if r.status_code == 403:
+            raise GitHubPermissionError(f"GET {url} returned 403: {r.text[:200]}")
+        if r.status_code == 404:
+            raise GitHubNotFoundError(f"GET {url} returned 404: {r.text[:200]}")
         if r.status_code >= 400:
-            raise RuntimeError(f"GET {url} failed: {r.status_code} {r.text}")
+            raise RuntimeError(f"GET {url} failed: {r.status_code} {r.text[:200]}")
         data = r.json()
         if not isinstance(data, list):
             raise RuntimeError(f"Expected list from {url}, got {type(data)}")
