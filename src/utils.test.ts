@@ -13,6 +13,8 @@ import {
   formatIsoCompact,
   readJsonSafe,
   listWorkspacePluginDirs,
+  getSystemResources,
+  checkGatewayStatus,
 } from "./utils.js";
 import type { CooldownEntry } from "./utils.js";
 
@@ -364,5 +366,63 @@ describe("listWorkspacePluginDirs", () => {
       "openclaw-mid",
       "openclaw-zeta",
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getSystemResources
+// ---------------------------------------------------------------------------
+describe("getSystemResources", () => {
+  it("returns cpu, memory, and disk keys", () => {
+    const res = getSystemResources();
+    expect(res).toHaveProperty("cpu");
+    expect(res).toHaveProperty("memory");
+    expect(res).toHaveProperty("disk");
+  });
+
+  it("cpu contains three load average values", () => {
+    const res = getSystemResources();
+    // Format is "x.xx, x.xx, x.xx"
+    expect(res.cpu).toMatch(/\d+\.\d+, \d+\.\d+, \d+\.\d+/);
+  });
+
+  it("memory contains usage percentage", () => {
+    const res = getSystemResources();
+    // Format includes "XX.X%"
+    expect(res.memory).toMatch(/\d+\.\d+%/);
+  });
+
+  it("memory contains formatted byte values", () => {
+    const res = getSystemResources();
+    // Contains "X.XGB / X.XGB" or similar
+    expect(res.memory).toMatch(/\//);
+  });
+
+  it("disk returns a string (may be N/A on some platforms)", () => {
+    const res = getSystemResources();
+    expect(typeof res.disk).toBe("string");
+    expect(res.disk.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// checkGatewayStatus
+// ---------------------------------------------------------------------------
+describe("checkGatewayStatus", () => {
+  it("returns an object with running boolean", () => {
+    // openclaw binary likely not installed in test env, so this should return not running
+    const result = checkGatewayStatus("default");
+    expect(typeof result.running).toBe("boolean");
+  });
+
+  it("returns not running when openclaw binary is unavailable", () => {
+    const result = checkGatewayStatus("nonexistent-profile-xyz");
+    expect(result.running).toBe(false);
+  });
+
+  it("pid and uptime are optional", () => {
+    const result = checkGatewayStatus();
+    expect(result.pid === undefined || typeof result.pid === "number").toBe(true);
+    expect(result.uptime === undefined || typeof result.uptime === "string").toBe(true);
   });
 });
