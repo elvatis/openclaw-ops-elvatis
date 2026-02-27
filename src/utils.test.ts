@@ -403,6 +403,15 @@ describe("getSystemResources", () => {
     expect(typeof res.disk).toBe("string");
     expect(res.disk.length).toBeGreaterThan(0);
   });
+
+  it("disk shows usage details on Linux, macOS, and Windows", () => {
+    const platform = os.platform();
+    if (platform !== "linux" && platform !== "darwin" && platform !== "win32") return;
+    const res = getSystemResources();
+    // Should contain percentage and byte values, not just "N/A"
+    expect(res.disk).toMatch(/\d+\.\d+% used/);
+    expect(res.disk).toMatch(/\//);
+  });
 });
 
 // ---------------------------------------------------------------------------

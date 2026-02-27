@@ -232,11 +232,12 @@ export function getSystemResources(): { cpu: string; memory: string; disk: strin
         disk = `${parts[4] || "N/A"} used (${parts[2] || "?"} / ${parts[1] || "?"})`;
       }
     } else if (platform === "win32") {
-      const driveInfo = safeExec(
-        'wmic logicaldisk where "DeviceID=\'C:\'" get Size,FreeSpace /format:csv',
-      );
-      const match = driveInfo.match(/\d+,\d+,(\d+)/);
-      if (match) disk = `${formatBytes(parseInt(match[1]))} free`;
+      const stats = fs.statfsSync("C:\\");
+      const total = stats.bsize * stats.blocks;
+      const free = stats.bsize * stats.bavail;
+      const used = total - free;
+      const usedPercent = ((used / total) * 100).toFixed(1);
+      disk = `${usedPercent}% used (${formatBytes(used)} / ${formatBytes(total)})`;
     }
   } catch {
     // Keep N/A

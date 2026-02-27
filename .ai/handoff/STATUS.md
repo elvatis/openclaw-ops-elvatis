@@ -1,6 +1,6 @@
 # openclaw-ops: Current State of the Nation
 
-> Last updated: 2026-02-27 by claude-opus-4.6 (T-006 /config command)
+> Last updated: 2026-02-27 by claude-opus-4.6 (T-007 Windows disk fix)
 > Commit: pending
 >
 > **Rule:** This file is rewritten (not appended) at the end of every session.
@@ -9,7 +9,7 @@
 ---
 
 <!-- SECTION: summary -->
-Active plugin at v0.2.0. All commands working. src/utils.ts is the single shared utility module exporting all cross-cutting helpers (path, shell, filesystem, JSON, formatting, cooldown, system, workspace scanning). Legacy commands extracted from index.ts into extensions/legacy-commands.ts. index.ts is now a thin entry point that delegates to five extension modules. 158 vitest tests passing across 7 test files. Triage CI suspended. v0.2 roadmap in progress - T-006 (/config) completed.
+Active plugin at v0.2.0. All commands working. src/utils.ts is the single shared utility module exporting all cross-cutting helpers (path, shell, filesystem, JSON, formatting, cooldown, system, workspace scanning). Legacy commands extracted from index.ts into extensions/legacy-commands.ts. index.ts is now a thin entry point that delegates to five extension modules. 159 vitest tests passing across 7 test files. Triage CI suspended. v0.2 roadmap in progress - T-007 (Windows disk fix) completed.
 <!-- /SECTION: summary -->
 
 <!-- SECTION: build_health -->
@@ -18,7 +18,7 @@ Active plugin at v0.2.0. All commands working. src/utils.ts is the single shared
 | Check | Result | Notes |
 |-------|--------|-------|
 | `tsc --noEmit` | Pass | Verified 2026-02-27 |
-| `npm test` | Pass (158 tests) | 7 test files, all passing |
+| `npm test` | Pass (159 tests) | 7 test files, all passing |
 | `lint` | (Unknown) | Not configured |
 
 <!-- /SECTION: build_health -->
@@ -31,7 +31,7 @@ Active plugin at v0.2.0. All commands working. src/utils.ts is the single shared
 ```
 index.ts                      -- thin entry point, delegates to extensions
 src/utils.ts                  -- single shared utility module (all helpers)
-src/utils.test.ts             -- 45 tests for shared utilities
+src/utils.test.ts             -- 46 tests for shared utilities
 src/test-helpers.ts           -- shared mock API for command testing
 extensions/
   legacy-commands.ts          -- /cron, /privacy-scan, /release, /staging-smoke, /handoff, /limits
@@ -101,10 +101,10 @@ Defined 2026-02-27. Five GitHub issues created:
 | [#1](https://github.com/homeofe/openclaw-ops/issues/1) | Extract shared utilities into a common module | High | Done |
 | [#2](https://github.com/homeofe/openclaw-ops/issues/2) | Add test infrastructure and basic command tests | High | Done |
 | [#3](https://github.com/homeofe/openclaw-ops/issues/3) | Implement Phase 2 /config command | Medium | Done |
-| [#4](https://github.com/homeofe/openclaw-ops/issues/4) | Fix Windows disk usage detection in /health | Medium | Open |
+| [#4](https://github.com/homeofe/openclaw-ops/issues/4) | Fix Windows disk usage detection in /health | Medium | Done |
 | [#5](https://github.com/homeofe/openclaw-ops/issues/5) | Fix triage CI workflow cross-repo 403 errors | Low | Open |
 
-Remaining: #4 (bug fix) -> #5 (CI fix, requires PAT setup)
+Remaining: #5 (CI fix, requires PAT setup)
 
 <!-- /SECTION: roadmap -->
 
