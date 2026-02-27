@@ -3,6 +3,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { registerPhase1Commands } from "./extensions/phase1-commands.js";
 import { registerObserverCommands } from "./extensions/observer-commands.js";
+import { registerSkillsCommands } from "./extensions/skills-commands.js";
 import { expandHome, safeExec, runCmd, latestFile } from "./src/utils.js";
 
 export default function register(api: any) {
@@ -370,4 +371,7 @@ export default function register(api: any) {
 
   // Register session observer commands (/sessions, /activity, /session-tail, /session-stats, /session-clear)
   registerObserverCommands(api, workspace);
+
+  // Register skills & shortcuts commands (/skills, /shortcuts)
+  registerSkillsCommands(api, workspace);
 }

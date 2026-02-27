@@ -267,7 +267,7 @@ export function registerObserverCommands(api: any, workspace: string): void {
       }
 
       for (const [sid, s] of sorted) {
-        const channels = [...s.channels].join(", ") || "—";
+        const channels = [...s.channels].join(", ") || "-";
         lines.push(`Session: ${fmtSession(sid)}`);
         lines.push(`  Last seen:  ${fmtTs(s.lastSeen)}`);
         lines.push(`  First seen: ${fmtTs(s.firstSeen)}`);

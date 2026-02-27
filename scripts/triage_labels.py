@@ -291,7 +291,7 @@ def main() -> int:
     print("\n== openclaw triage summary ==")
     print(f"repos scanned: {len(repos)}")
     if skipped_repos:
-        print(f"repos skipped (no permissions): {len(skipped_repos)} — {', '.join(skipped_repos)}")
+        print(f"repos skipped (no permissions): {len(skipped_repos)} - {', '.join(skipped_repos)}")
         print("💡 To triage all repos, set TRIAGE_GH_TOKEN secret with a PAT that has repo-level access.")
     print(f"labeled total: security={total.security}, bug={total.bug}, needs-triage={total.needs_triage}")
     print("\nPer repo:")
