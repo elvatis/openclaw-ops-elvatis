@@ -15,6 +15,7 @@ import {
   listWorkspacePluginDirs,
   getSystemResources,
   checkGatewayStatus,
+  detectWindowsDriveRoot,
 } from "./utils.js";
 import type { CooldownEntry } from "./utils.js";
 
@@ -370,6 +371,39 @@ describe("listWorkspacePluginDirs", () => {
 });
 
 // ---------------------------------------------------------------------------
+// detectWindowsDriveRoot
+// ---------------------------------------------------------------------------
+describe("detectWindowsDriveRoot", () => {
+  it("extracts drive letter from standard Windows path", () => {
+    expect(detectWindowsDriveRoot("E:\\_data\\workspace")).toBe("E:\\");
+  });
+
+  it("extracts drive letter from path with forward slashes", () => {
+    expect(detectWindowsDriveRoot("D:/projects/openclaw")).toBe("D:\\");
+  });
+
+  it("normalizes lowercase drive letters to uppercase", () => {
+    expect(detectWindowsDriveRoot("c:\\Users\\test")).toBe("C:\\");
+  });
+
+  it("handles bare drive letter without trailing separator", () => {
+    expect(detectWindowsDriveRoot("E:")).toBe("E:\\");
+  });
+
+  it("falls back to C:\\ for UNC or unusual paths", () => {
+    expect(detectWindowsDriveRoot("\\\\server\\share")).toBe("C:\\");
+  });
+
+  it("falls back to C:\\ for Unix-style paths", () => {
+    expect(detectWindowsDriveRoot("/home/user/workspace")).toBe("C:\\");
+  });
+
+  it("falls back to C:\\ for empty string", () => {
+    expect(detectWindowsDriveRoot("")).toBe("C:\\");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // getSystemResources
 // ---------------------------------------------------------------------------
 describe("getSystemResources", () => {
@@ -411,6 +445,19 @@ describe("getSystemResources", () => {
     // Should contain percentage and byte values, not just "N/A"
     expect(res.disk).toMatch(/\d+\.\d+% used/);
     expect(res.disk).toMatch(/\//);
+  });
+
+  it("accepts a workspace path argument for drive detection", () => {
+    const res = getSystemResources(process.cwd());
+    expect(typeof res.disk).toBe("string");
+    expect(res.disk.length).toBeGreaterThan(0);
+  });
+
+  it("on Windows, disk output includes drive letter indicator", () => {
+    if (os.platform() !== "win32") return;
+    const res = getSystemResources("E:\\_data\\workspace");
+    // On Windows the output should include the drive letter in brackets
+    expect(res.disk).toMatch(/\[[A-Z]:\]/);
   });
 });
 

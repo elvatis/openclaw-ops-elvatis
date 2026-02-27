@@ -206,8 +206,13 @@ export function formatCooldownLine(entry: CooldownEntry): string {
 // System inspection helpers
 // ---------------------------------------------------------------------------
 
-/** Gather CPU load, memory usage, and disk usage for the current host. */
-export function getSystemResources(): { cpu: string; memory: string; disk: string } {
+/**
+ * Gather CPU load, memory usage, and disk usage for the current host.
+ *
+ * @param workspacePath - Optional workspace path used to detect the correct
+ *   drive on Windows. When omitted, falls back to `process.cwd()`.
+ */
+export function getSystemResources(workspacePath?: string): { cpu: string; memory: string; disk: string } {
   const platform = os.platform();
 
   // CPU load
@@ -232,18 +237,41 @@ export function getSystemResources(): { cpu: string; memory: string; disk: strin
         disk = `${parts[4] || "N/A"} used (${parts[2] || "?"} / ${parts[1] || "?"})`;
       }
     } else if (platform === "win32") {
-      const stats = fs.statfsSync("C:\\");
+      // Detect the drive letter from the workspace path (or cwd as fallback).
+      // This avoids hardcoding C: which may not be the workspace drive.
+      const probePath = workspacePath ?? process.cwd();
+      const driveRoot = detectWindowsDriveRoot(probePath);
+      const stats = fs.statfsSync(driveRoot);
       const total = stats.bsize * stats.blocks;
       const free = stats.bsize * stats.bavail;
       const used = total - free;
       const usedPercent = ((used / total) * 100).toFixed(1);
-      disk = `${usedPercent}% used (${formatBytes(used)} / ${formatBytes(total)})`;
+      disk = `${usedPercent}% used (${formatBytes(used)} / ${formatBytes(total)}) [${driveRoot.replace("\\", "")}]`;
     }
   } catch {
     // Keep N/A
   }
 
   return { cpu, memory, disk };
+}
+
+/**
+ * Extract the drive root (e.g. `C:\\`) from a Windows path.
+ *
+ * Handles standard paths like `E:\\_data\\workspace`, UNC paths, and
+ * forward-slash paths. Falls back to `C:\\` when no drive letter is found.
+ */
+export function detectWindowsDriveRoot(filepath: string): string {
+  // Match drive letter at the start: "C:", "C:\", "C:/", "c:\\"
+  const match = filepath.match(/^([A-Za-z]):[/\\]/);
+  if (match) {
+    return `${match[1].toUpperCase()}:\\`;
+  }
+  // Bare drive letter without trailing separator (e.g. "C:")
+  if (/^[A-Za-z]:$/.test(filepath)) {
+    return `${filepath[0].toUpperCase()}:\\`;
+  }
+  return "C:\\";
 }
 
 /**

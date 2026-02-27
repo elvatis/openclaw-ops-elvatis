@@ -50,7 +50,7 @@ export function registerPhase1Commands(api: any, workspace: string) {
       // System Resources
       lines.push("");
       lines.push("RESOURCES");
-      const resources = getSystemResources();
+      const resources = getSystemResources(workspace);
       lines.push(`- CPU load: ${resources.cpu}`);
       lines.push(`- Memory: ${resources.memory}`);
       lines.push(`- Disk: ${resources.disk}`);
