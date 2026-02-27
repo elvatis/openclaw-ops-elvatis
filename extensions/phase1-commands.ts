@@ -1,106 +1,20 @@
 /**
  * openclaw-ops Phase 1 Extensions
  * Operational Command Board - High Priority Commands
- * 
+ *
  * Commands: /health, /services, /logs, /plugins
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { execSync, spawnSync } from "node:child_process";
-
-// Utility functions (shared with main index.ts)
-function expandHome(p: string): string {
-  if (!p) return p;
-  if (p === "~") return os.homedir();
-  if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
-  return p;
-}
-
-function safeExec(cmd: string): string {
-  try {
-    return execSync(cmd, { stdio: ["ignore", "pipe", "ignore"], encoding: "utf-8" }).trim();
-  } catch {
-    return "";
-  }
-}
-
-function runCmd(cmd: string, args: string[], timeoutMs = 30000): { code: number; out: string } {
-  try {
-    const p = spawnSync(cmd, args, {
-      encoding: "utf-8",
-      timeout: timeoutMs,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const out = `${p.stdout ?? ""}\n${p.stderr ?? ""}`.trim();
-    return { code: p.status ?? (p.error ? 1 : 0), out };
-  } catch (e: any) {
-    return { code: 1, out: String(e?.message ?? e) };
-  }
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)}KB`;
-  if (bytes < 1024 ** 3) return `${(bytes / (1024 ** 2)).toFixed(1)}MB`;
-  return `${(bytes / (1024 ** 3)).toFixed(2)}GB`;
-}
-
-function getSystemResources(): { cpu: string; memory: string; disk: string } {
-  const platform = os.platform();
-  
-  // CPU load
-  const loadavg = os.loadavg();
-  const cpu = `${loadavg[0].toFixed(2)}, ${loadavg[1].toFixed(2)}, ${loadavg[2].toFixed(2)}`;
-  
-  // Memory
-  const totalMem = os.totalmem();
-  const freeMem = os.freemem();
-  const usedMem = totalMem - freeMem;
-  const memPercent = ((usedMem / totalMem) * 100).toFixed(1);
-  const memory = `${formatBytes(usedMem)} / ${formatBytes(totalMem)} (${memPercent}%)`;
-  
-  // Disk (platform-specific)
-  let disk = "N/A";
-  try {
-    if (platform === "linux" || platform === "darwin") {
-      const df = safeExec("df -h /");
-      const lines = df.split("\n");
-      if (lines.length >= 2) {
-        const parts = lines[1].split(/\s+/);
-        disk = `${parts[4] || "N/A"} used (${parts[2] || "?"} / ${parts[1] || "?"})`;
-      }
-    } else if (platform === "win32") {
-      const driveInfo = safeExec('wmic logicaldisk where "DeviceID=\'C:\'" get Size,FreeSpace /format:csv');
-      // Parse Windows output - simplified
-      const match = driveInfo.match(/\d+,\d+,(\d+)/);
-      if (match) disk = `${formatBytes(parseInt(match[1]))} free`;
-    }
-  } catch {
-    // Keep N/A
-  }
-  
-  return { cpu, memory, disk };
-}
-
-function checkGatewayStatus(profile = "default"): { running: boolean; pid?: number; uptime?: string } {
-  const profileArg = profile === "default" ? [] : ["--profile", profile];
-  const result = runCmd("openclaw", [...profileArg, "gateway", "status"], 10000);
-  
-  const running = result.code === 0 && result.out.toLowerCase().includes("running");
-  
-  // Try to extract PID if available
-  let pid: number | undefined;
-  let uptime: string | undefined;
-  const pidMatch = result.out.match(/PID[:\s]+(\d+)/i);
-  if (pidMatch) pid = parseInt(pidMatch[1]);
-  
-  const uptimeMatch = result.out.match(/uptime[:\s]+(.+?)(?:\n|$)/i);
-  if (uptimeMatch) uptime = uptimeMatch[1].trim();
-  
-  return { running, pid, uptime };
-}
+import {
+  expandHome,
+  safeExec,
+  runCmd,
+  getSystemResources,
+  checkGatewayStatus,
+} from "../src/utils.js";
 
 export function registerPhase1Commands(api: any, workspace: string) {
   

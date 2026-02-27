@@ -19,10 +19,13 @@
   },
   "include": [
     "index.ts",
+    "src/**/*.ts",
     "extensions/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ]
 }

@@ -1,50 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
-import { execSync, spawnSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { registerPhase1Commands } from "./extensions/phase1-commands.js";
-
-function expandHome(p: string): string {
-  if (!p) return p;
-  if (p === "~") return os.homedir();
-  if (p.startsWith("~/")) return path.join(os.homedir(), p.slice(2));
-  return p;
-}
-
-function safeExec(cmd: string): string {
-  try {
-    return execSync(cmd, { stdio: ["ignore", "pipe", "ignore"], encoding: "utf-8" }).trim();
-  } catch {
-    return "";
-  }
-}
-
-function runCmd(cmd: string, args: string[], timeoutMs = 120_000): { code: number; out: string } {
-  try {
-    const p = spawnSync(cmd, args, {
-      encoding: "utf-8",
-      timeout: timeoutMs,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const out = `${p.stdout ?? ""}\n${p.stderr ?? ""}`.trim();
-    return { code: p.status ?? (p.error ? 1 : 0), out };
-  } catch (e: any) {
-    return { code: 1, out: String(e?.message ?? e) };
-  }
-}
-
-function latestFile(dir: string, prefix: string): string | null {
-  try {
-    const files = fs
-      .readdirSync(dir)
-      .filter((f) => f.startsWith(prefix))
-      .map((f) => ({ f, t: fs.statSync(path.join(dir, f)).mtimeMs }))
-      .sort((a, b) => b.t - a.t);
-    return files[0]?.f ?? null;
-  } catch {
-    return null;
-  }
-}
+import { registerObserverCommands } from "./extensions/observer-commands.js";
+import { expandHome, safeExec, runCmd, latestFile } from "./src/utils.js";
 
 export default function register(api: any) {
   const cfg = (api.pluginConfig ?? {}) as { enabled?: boolean; workspacePath?: string };
@@ -401,4 +360,7 @@ export default function register(api: any) {
 
   // Register Phase 1 operational commands
   registerPhase1Commands(api, workspace);
+
+  // Register session observer commands (/sessions, /activity, /session-tail, /session-stats, /session-clear)
+  registerObserverCommands(api, workspace);
 }

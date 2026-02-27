@@ -3,9 +3,18 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "openclaw": { "extensions": ["./index.ts"] },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "@types/node": "^20.19.35",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }
