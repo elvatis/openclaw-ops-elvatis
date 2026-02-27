@@ -325,8 +325,8 @@ def main() -> int:
     print("\n== openclaw triage summary ==")
     print(f"repos scanned: {len(repos)}")
     if skipped_repos:
-        print(f"repos skipped (no permissions): {len(skipped_repos)} - {', '.join(skipped_repos)}")
-        print("💡 To triage all repos, set TRIAGE_GH_TOKEN secret with a PAT that has repo-level access.")
+        print(f"repos skipped (no access): {len(skipped_repos)} - {', '.join(skipped_repos)}")
+        print("  Hint: set TRIAGE_GH_TOKEN secret with a fine-grained PAT for cross-repo access.")
     print(f"labeled total: security={total.security}, bug={total.bug}, needs-triage={total.needs_triage}")
     print("\nPer repo:")
     for repo in sorted(per_repo.keys()):
@@ -338,16 +338,18 @@ def main() -> int:
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:
         with open(summary_path, "a", encoding="utf-8") as f:
-            f.write("## OpenClaw triage (labeling-only)\n")
-            f.write(f"Repos scanned: **{len(repos)}**\\n\\n")
+            f.write("## OpenClaw triage (labeling-only)\n\n")
+            f.write(f"Repos scanned: **{len(repos)}**\n\n")
+            if skipped_repos:
+                f.write(f"Repos skipped (no access): **{len(skipped_repos)}** - {', '.join(skipped_repos)}\n\n")
             f.write(
-                f"Labeled total: **security={total.security}**, **bug={total.bug}**, **needs-triage={total.needs_triage}**\\n\\n"
+                f"Labeled total: **security={total.security}**, **bug={total.bug}**, **needs-triage={total.needs_triage}**\n\n"
             )
-            f.write("### Per repo (non-zero)\n")
+            f.write("### Per repo (non-zero)\n\n")
             for repo in sorted(per_repo.keys()):
                 c = per_repo[repo]
                 if c.security or c.bug or c.needs_triage:
-                    f.write(f"- `{owner}/{repo}`: security={c.security}, bug={c.bug}, needs-triage={c.needs_triage}\\n")
+                    f.write(f"- `{owner}/{repo}`: security={c.security}, bug={c.bug}, needs-triage={c.needs_triage}\n")
 
     return 0
 
