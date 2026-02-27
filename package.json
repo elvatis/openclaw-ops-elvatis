@@ -1,5 +1,5 @@
 {
-  "name": "openclaw-ops",
+  "name": "@elvatis_com/openclaw-ops",
   "version": "0.2.0",
   "private": true,
   "type": "module",
