@@ -1,6 +1,6 @@
 ﻿# openclaw-ops-elvatis: Autonomous Multi-Agent Workflow
 
-> Based on the [AAHP Protocol](https://github.com/elvatis/AAHP).
+> Based on the [AAHP Protocol](https://github.com/homeofe/AAHP).
 
 ---
 
