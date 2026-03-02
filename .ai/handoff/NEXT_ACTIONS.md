@@ -47,3 +47,8 @@ All tracked tasks are complete. No open work items remain.
 | Failover state | `memory/model-ratelimits.json` |
 | CI workflow | `.github/workflows/openclaw-triage-labels.yml` |
 | Triage script | `scripts/triage_labels.py` |
+
+## ⚠️ Version Sync Rule
+**ALWAYS keep `package.json` and `openclaw.plugin.json` versions in sync.**
+When bumping a version, update BOTH files. Mismatched versions cause plugin loading failures and npm/ClawHub publish inconsistencies.
+

@@ -1,5 +1,5 @@
 {
-  "id": "openclaw-ops-elvatis-elvatis",
+  "id": "openclaw-ops-elvatis",
   "name": "OpenClaw Ops",
   "version": "0.2.1",
   "description": "Operational commands: dashboards, monitoring, and management.",

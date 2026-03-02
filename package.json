@@ -1,6 +1,6 @@
 {
-  "name": "@elvatis_com/openclaw-ops-elvatis-elvatis",
-  "version": "0.2.0",
+  "name": "@elvatis_com/openclaw-ops-elvatis",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
