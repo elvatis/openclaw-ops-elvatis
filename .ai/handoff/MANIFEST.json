@@ -166,7 +166,7 @@
     "T-011": {
       "title": "Add test infrastructure and basic command tests",
       "status": "done",
-      "priority": "medium",
+      "priority": "high",
       "depends_on": [],
       "created": "2026-03-01T12:58:55.531Z",
       "completed": "2026-03-01T13:10:00.000Z",
@@ -177,7 +177,7 @@
     "T-012": {
       "title": "Extract shared utilities into a common module",
       "status": "done",
-      "priority": "medium",
+      "priority": "high",
       "depends_on": [],
       "created": "2026-03-01T12:58:55.531Z",
       "completed": "2026-03-01T13:10:00.000Z",
