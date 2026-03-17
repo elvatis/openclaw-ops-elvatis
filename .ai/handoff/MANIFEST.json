@@ -188,9 +188,15 @@
     "T-013": {
       "title": "[CI] Failed run 22453989444 — labels API 403 (Resource not accessible by integration)",
       "status": "ready",
+<<<<<<< HEAD
       "priority": "low",
       "depends_on": [],
       "created": "2026-03-08T08:04:26.436Z",
+=======
+      "priority": "medium",
+      "depends_on": [],
+      "created": "2026-03-07T06:58:49.469Z",
+>>>>>>> ef83baa02bdd37a3e7448bba4683380c9c034a81
       "notes": "Automated CI triage created by Akido.\n\nRepository: elvatis/openclaw-ops-elvatis\nFailed run: 22453989444\nRun URL: https://github.com/elvatis/openclaw-ops-elvatis/actions/runs/22453989444\n\nSummary:\nlabels API 403 (Resource not accessible by integration)\n\nRelevant log excerpts:\n- See the Actions run for full logs: https://github.com/elvatis/openclaw-ops-elvatis/actions/runs/22453989444\n\nSuggested next steps:\n- Reproduce locally: run the CI steps (install deps, tsc, lint, tests).\n- Apply the suggest",
       "github_issue": 7,
       "github_repo": "elvatis/openclaw-ops-elvatis"
